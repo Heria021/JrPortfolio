@@ -1,13 +1,11 @@
 'use client';
 
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Menu } from "lucide-react";
 import { MobileMenu } from "./MobileMenu";
 
 export function Header() {
   return (
-    <div className="flex justify-between items-center w-full py-12">
+    <div className="flex justify-between items-center w-full py-6 md:py-12">
       <h2 className="text-xl font-semibold">Hariom Suthar</h2>
       <div className="hidden sm:flex gap-8">
         <Link href="/">

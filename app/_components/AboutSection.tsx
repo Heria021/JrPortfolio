@@ -19,7 +19,7 @@ export function AboutSection({
 }) {
   return (
     <SectionContainer className={className} {...props}>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8 items-start">
         <div>
           <h2 className="text-2xl font-semibold mb-4">{title}</h2>
         </div>

@@ -43,7 +43,7 @@ export default function Portfolio() {
         )}
       </section> */}
 
-      <Separator className="my-8 bg-white" />
+      <Separator className="my-4 md:my-8 bg-white" />
 
       {/* Results Section */}
       <section className="w-full">

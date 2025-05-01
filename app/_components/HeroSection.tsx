@@ -59,7 +59,7 @@ export function HeroSection({
                 </AnimatePresence>
             </div>
 
-            <div className="relative z-10 container max-w-5xl mx-auto px-6 min-h-[60vh] md:min-h-[70vh] flex flex-col justify-between py-12 text-white">
+            <div className="relative z-10 container max-w-5xl mx-auto px-6 min-h-[60vh] md:min-h-[70vh] flex flex-col justify-between py-6 md:py-12 text-white">
                 <div className="flex justify-between items-start md:items-center gap-4">
                     <h2 className="text-xl font-medium">{title}</h2>
                     <div className="hidden sm:flex gap-8 text-sm">
@@ -76,8 +76,8 @@ export function HeroSection({
                 </div>
 
                 <div className="">
-                    <h3 className="text-5xl font-normal mb-2">{title}</h3>
-                    <p>{subtitle}</p>
+                    <h3 className="md:text-5xl text-3xl font-normal mb-2">{title}</h3>
+                    <p className="md:text-lg text-sm">{subtitle}</p>
                 </div>
             </div>
         </SectionContainer>

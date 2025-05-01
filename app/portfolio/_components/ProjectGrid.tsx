@@ -13,7 +13,7 @@ export function ProjectGrid({
   }) {
     return (
       <SectionContainer className={className} {...props}>
-        <div className={`grid ${columns} gap-y-14 gap-x-10`}>
+        <div className={`grid ${columns} gap-y-10 gap-x-10`}>
           {projects.map((project, index) => (
             <div key={index}>
               <Image
