@@ -3,12 +3,20 @@
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { SectionContainer } from "@/components/SectionContainer";
- 
+
+const phoneNumber = '+919782353866';
+const message = 'Hello! I want to chat with you.';
+const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+
+const handleClick = () => {
+  window.open(whatsappUrl, '_blank');
+};
+
 
 export function ContactSection({
   title = "Contact",
-  phone = "+91 78777132244",
-  email = "hariomsuthar7143@gmail.com",
+  phone = "+91 9782353866",
+  email = "rameshsuthar32@gmail.com",
   imageSrc = "/office.jpg",
   introText = "If you are interested in learning more about my work, discussing a potential project, or have any questions or comments, please feel free to contact me using the following information:",
   outro = "I look forward to hearing from you and the opportunity to collaborate on your next project.",
@@ -42,7 +50,7 @@ export function ContactSection({
             </p>
             <p>{outro}</p>
           </div>
-          <Button variant="outline" className="rounded-full">
+          <Button variant="outline" className="rounded-full" onClick={handleClick}>
             {buttonText}
           </Button>
         </div>

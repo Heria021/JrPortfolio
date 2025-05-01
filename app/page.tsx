@@ -31,8 +31,8 @@ export default function Home() {
     <>
       <HeroSection
         images={images}
-        title="Hariom Suthar"
-        subtitle="Experienced professional with 5 years of experience. Let's have a chat!"
+        title="Ramesh Suthar"
+        subtitle="Experienced professional with 15 years of experience. Let's have a chat!"
       />
       <PageLayout withoutHeader={true}>
         <div className="min-h-screen max-w-5xl mx-auto mt-24 text-sm">
