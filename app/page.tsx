@@ -7,7 +7,7 @@ import { AboutSection } from "./_components/AboutSection";
 import { ProjectGrid } from "./_components/ProjectGrid";
 import fetchPortfolioEntries from "@/lib/Portfolio/fetchPortfolioEntries";
 
-const images = ["/fur2.jpg", "/fur3.jpg", "/image.png"];
+const images = ["/pexels-heyho-6969873.jpg", "/pexels-heyho-6758788.jpg", "/pexels-ansar-muhammad-380085065-23916863.jpg"];
 
 export default function Home() {
   const [portfolioEntries, setPortfolioEntries] = useState<any[]>([]);

@@ -7,7 +7,7 @@ import { SectionContainer } from "@/components/SectionContainer";
 import Link from "next/link";
 import { MobileMenu } from "@/components/MobileMenu";
 export function HeroSection({
-    images = ["/cvn.jpeg", "/modern-dining-pendant-light-1024x576.jpg", "/modern-floor-lamp.jpg"],
+    images = [],
     title = "Ramesh Suthar",
     subtitle = "Experienced professional with 15 years of experience. Let's have a chat!",
     className,
@@ -51,6 +51,7 @@ export function HeroSection({
                             className="object-cover brightness-75"
                             priority
                             sizes="100vw"
+                            quality={100}
                         />
                         <div className="absolute inset-0 bg-black/20" />
                     </motion.div>
