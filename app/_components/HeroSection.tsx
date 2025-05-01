@@ -4,14 +4,12 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from 'framer-motion';
 import { SectionContainer } from "@/components/SectionContainer";
-import { Menu } from "lucide-react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { MobileMenu } from "@/components/MobileMenu";
 export function HeroSection({
-    images = ["/fur2.jpg", "/fur3.jpg", "/image.png"],
-    title = "Hariom Suthar",
-    subtitle = "Experienced professional with 5 years of experience. Let's have a chat!",
+        images = ["cvn.jpeg", "modern-dining-pendant-light-1024x576.jpg", "modern-floor-lamp.jpg"],
+    title = "Ramesh Suthar",
+    subtitle = "Experienced professional with 15 years of experience. Let's have a chat!",
     className,
     ...props
 }: {
