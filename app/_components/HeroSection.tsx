@@ -7,7 +7,7 @@ import { SectionContainer } from "@/components/SectionContainer";
 import Link from "next/link";
 import { MobileMenu } from "@/components/MobileMenu";
 export function HeroSection({
-        images = ["cvn.jpeg", "modern-dining-pendant-light-1024x576.jpg", "modern-floor-lamp.jpg"],
+    images = ["/cvn.jpeg", "/modern-dining-pendant-light-1024x576.jpg", "/modern-floor-lamp.jpg"],
     title = "Ramesh Suthar",
     subtitle = "Experienced professional with 15 years of experience. Let's have a chat!",
     className,
