@@ -31,11 +31,12 @@ export default function Resume() {
 
             <Separator className="my-12" />
 
+            {/* Contact Section */}
             <ContactSection
                 title="Contact"
-                phone="+91 78777132244"
-                email="hariomsuthar7143@gmail.com"
-                imageSrc="/office.jpg"
+                phone="+91 9782353866"
+                email="rameshsuthar32@gmail.com"
+                imageSrc="/profile.png"
                 introText="If you are interested in learning more about my work, discussing a potential project, or have any questions or comments, please feel free to contact me using the following information:"
                 outro="I look forward to hearing from you and the opportunity to collaborate on your next project."
                 buttonText="Send a Message"

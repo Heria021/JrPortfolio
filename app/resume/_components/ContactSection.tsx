@@ -17,7 +17,7 @@ export function ContactSection({
   title = "Contact",
   phone = "+91 9782353866",
   email = "rameshsuthar32@gmail.com",
-  imageSrc = "/office.jpg",
+  imageSrc = "/profile.png",
   introText = "If you are interested in learning more about my work, discussing a potential project, or have any questions or comments, please feel free to contact me using the following information:",
   outro = "I look forward to hearing from you and the opportunity to collaborate on your next project.",
   buttonText = "Send a Message",
@@ -57,11 +57,11 @@ export function ContactSection({
 
         {/* Image */}
         <div className="w-full h-full">
-          <div className="w-full h-[500px]">
+          <div className="w-full p-0 md:px-10  h-[580px] md:h-[500px]">
             <Image
               src={imageSrc}
               alt="Contact Illustration"
-              className="w-full h-full object-cover rounded-md"
+              className="w-full h-full object-cover object-top rounded-md"
               width={0}
               height={0}
               sizes="100vw"
