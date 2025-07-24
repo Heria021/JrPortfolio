@@ -1,0 +1,33 @@
+[
+  {
+    "id": "1753378362289",
+    "slug": "narayani-traders",
+    "title": "Narayani Traders",
+    "description": "Build for building dreams for you.",
+    "category": "Commercial",
+    "tags": "modern, sustainable, contemporary, traditional, eco-friendly, smart-home, open-concept",
+    "completionDate": "2025-07-25",
+    "images": [
+      {
+        "url": "https://res.cloudinary.com/ddyngjtwp/image/upload/v1753378353/portfolio/orijf0oen79jgnvkafpl.jpg",
+        "public_id": "portfolio/orijf0oen79jgnvkafpl",
+        "width": 3500,
+        "height": 2304
+      },
+      {
+        "url": "https://res.cloudinary.com/ddyngjtwp/image/upload/v1753378353/portfolio/mjit0m8k70idhi7ibe2f.jpg",
+        "public_id": "portfolio/mjit0m8k70idhi7ibe2f",
+        "width": 3400,
+        "height": 2270
+      },
+      {
+        "url": "https://res.cloudinary.com/ddyngjtwp/image/upload/v1753378353/portfolio/quzraaolloqi9oesowve.jpg",
+        "public_id": "portfolio/quzraaolloqi9oesowve",
+        "width": 3400,
+        "height": 2186
+      }
+    ],
+    "createdAt": "2025-07-24T17:32:42.289Z",
+    "updatedAt": "2025-07-24T17:42:51.098Z"
+  }
+]
