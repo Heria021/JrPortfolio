@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation"
 import { useSession, signOut } from "next-auth/react"
 import Link from "next/link"
 import Image from "next/image"
-import { Upload, LogOut, Plus, FolderOpen, Calendar } from "lucide-react"
+import { Upload, LogOut, Plus, FolderOpen, Calendar, Edit, ExternalLink } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -318,6 +318,22 @@ const ProjectCard = React.memo<ProjectCardProps>(({ project, className = "" }) =
               <span>{new Date(project.completionDate).toLocaleDateString()}</span>
             </div>
           )}
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex gap-2 pt-3">
+          <Link href={`/admin/${project.id}`} className="flex-1">
+            <Button variant="outline" size="sm" className="w-full rounded-lg">
+              <Edit className="h-3 w-3 mr-1" />
+              Edit
+            </Button>
+          </Link>
+          <Link href={`/portfolio/${project.id}`} className="flex-1">
+            <Button variant="secondary" size="sm" className="w-full rounded-lg">
+              <ExternalLink className="h-3 w-3 mr-1" />
+              View
+            </Button>
+          </Link>
         </div>
       </CardContent>
     </Card>
