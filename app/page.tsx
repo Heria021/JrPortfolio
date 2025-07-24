@@ -21,10 +21,10 @@ export default function Home() {
   }, []);
 
   const formattedProjects = portfolioEntries.map((entry: any) => ({
-    imageUrl: entry.uploads?.[0]?.url || "",
-    title: entry.projectName || "Untitled Project",
+    imageUrl: entry.images?.[0]?.url || "",
+    title: entry.title || "Untitled Project",
     description: entry.description || "No description available.",
-    id: entry.projectId
+    id: entry.id
   }));
 
   return (

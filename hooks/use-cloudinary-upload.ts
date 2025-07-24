@@ -21,63 +21,66 @@ export function useCloudinaryUpload() {
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null)
 
   const uploadImage = async (file: File): Promise<CloudinaryImage> => {
-    // For demo purposes, we'll simulate an upload and return a mock response
-    // In production, you would configure Cloudinary with proper credentials
-    return new Promise((resolve, reject) => {
-      setIsUploading(true)
-      setUploadProgress({ loaded: 0, total: file.size, percentage: 0 })
+    // Validate file type and size first
+    if (!file.type.startsWith('image/')) {
+      throw new Error('Please select a valid image file')
+    }
 
-      // Simulate upload progress
-      const simulateProgress = () => {
-        let progress = 0
-        const interval = setInterval(() => {
-          progress += Math.random() * 30
-          if (progress >= 100) {
-            progress = 100
-            clearInterval(interval)
+    if (file.size > 10 * 1024 * 1024) { // 10MB limit
+      throw new Error('File size must be less than 10MB')
+    }
 
-            // Simulate successful upload response
-            setTimeout(() => {
-              setIsUploading(false)
-              setUploadProgress(null)
+    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+    const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET
 
-              // Create a mock Cloudinary response
-              const mockResponse: CloudinaryImage = {
-                url: URL.createObjectURL(file), // Use blob URL for demo
-                public_id: `portfolio/${Date.now()}_${file.name}`,
-                width: 800, // Mock dimensions
-                height: 600,
-              }
+    if (!cloudName || !uploadPreset) {
+      throw new Error('Cloudinary configuration missing. Please check environment variables.')
+    }
 
-              resolve(mockResponse)
-            }, 500)
-          } else {
-            setUploadProgress({
-              loaded: Math.round((progress / 100) * file.size),
-              total: file.size,
-              percentage: Math.round(progress),
-            })
-          }
-        }, 100)
+    setIsUploading(true)
+    setUploadProgress({ loaded: 0, total: file.size, percentage: 0 })
+
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('upload_preset', uploadPreset)
+      formData.append('folder', 'portfolio')
+
+      const response = await fetch(
+        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+        {
+          method: 'POST',
+          body: formData,
+        }
+      )
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        if (response.status === 400 && errorData.error?.message?.includes('Invalid upload preset')) {
+          throw new Error('Upload preset "portfolio_uploads" not found. Please create it in your Cloudinary dashboard.')
+        }
+        throw new Error(`Upload failed: ${response.statusText}`)
       }
 
-      // Validate file type and size
-      if (!file.type.startsWith('image/')) {
-        setIsUploading(false)
-        setUploadProgress(null)
-        reject(new Error('Please select a valid image file'))
-        return
+      const data = await response.json()
+
+      // Return Cloudinary response in our expected format
+      const cloudinaryImage: CloudinaryImage = {
+        url: data.secure_url,
+        public_id: data.public_id,
+        width: data.width,
+        height: data.height,
       }
 
-      if (file.size > 10 * 1024 * 1024) { // 10MB limit
-        setIsUploading(false)
-        setUploadProgress(null)
-        reject(new Error('File size must be less than 10MB'))
-        return
-      }
+      setIsUploading(false)
+      setUploadProgress(null)
 
-      simulateProgress()
-    })
+      return cloudinaryImage
+    } catch (error) {
+      setIsUploading(false)
+      setUploadProgress(null)
+      throw error
+    }
   }
 
   const uploadMultipleImages = async (files: File[]): Promise<CloudinaryImage[]> => {

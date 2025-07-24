@@ -29,10 +29,52 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
-import { ImageUpload } from "@/components/ui/image-upload"
+
+import { DatePicker } from "@/components/ui/date-picker"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge"
 import { portfolioSchema, type PortfolioFormData } from "@/lib/validations/auth"
-import type { CloudinaryImage } from "@/hooks/use-cloudinary-upload"
+import { useCloudinaryUpload, type CloudinaryImage } from "@/hooks/use-cloudinary-upload"
 import { cn } from "@/lib/utils"
+import { format, parseISO } from "date-fns"
+
+// Category options for the dropdown
+const CATEGORY_OPTIONS = [
+  "Residential",
+  "Commercial",
+  "Interior Design",
+  "Landscape",
+  "Urban Planning",
+  "Renovation",
+  "Sustainable Design",
+  "Mixed-Use",
+  "Hospitality",
+  "Educational",
+  "Healthcare",
+  "Industrial"
+]
+
+// Example tags that users can quickly select
+const EXAMPLE_TAGS = [
+  "modern",
+  "minimalist",
+  "sustainable",
+  "luxury",
+  "contemporary",
+  "traditional",
+  "eco-friendly",
+  "smart-home",
+  "open-concept",
+  "natural-light",
+  "energy-efficient",
+  "innovative"
+]
 
 interface PortfolioUploadPageProps {
   className?: string
@@ -233,13 +275,20 @@ const ProjectUploadForm = React.memo<ProjectUploadFormProps>(({
                               <FolderIcon className="h-4 w-4" />
                               Category
                             </FormLabel>
-                            <FormControl>
-                              <Input
-                                placeholder="e.g., Residential, Commercial, Interior..."
-                                className="rounded-lg"
-                                {...field}
-                              />
-                            </FormControl>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger className="rounded-lg">
+                                  <SelectValue placeholder="Select a category..." />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {CATEGORY_OPTIONS.map((category) => (
+                                  <SelectItem key={category} value={category}>
+                                    {category}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                             <FormDescription>
                               Project category or type
                             </FormDescription>
@@ -258,10 +307,13 @@ const ProjectUploadForm = React.memo<ProjectUploadFormProps>(({
                               Completion Date
                             </FormLabel>
                             <FormControl>
-                              <Input
-                                type="date"
+                              <DatePicker
+                                value={field.value ? new Date(field.value) : undefined}
+                                onChange={(date) => {
+                                  field.onChange(date ? format(date, "yyyy-MM-dd") : "")
+                                }}
+                                placeholder="Select completion date..."
                                 className="rounded-lg"
-                                {...field}
                               />
                             </FormControl>
                             <FormDescription>
@@ -276,25 +328,49 @@ const ProjectUploadForm = React.memo<ProjectUploadFormProps>(({
                     <FormField
                       control={form.control}
                       name="tags"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="flex items-center gap-2">
-                            <TagIcon className="h-4 w-4" />
-                            Tags
-                          </FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="sustainable, modern, minimalist, urban (comma-separated)"
-                              className="rounded-lg"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            Comma-separated tags to help categorize your project
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                      render={({ field }) => {
+                        const addTag = (tag: string) => {
+                          const currentTags = field.value ? field.value.split(',').map(t => t.trim()).filter(Boolean) : []
+                          if (!currentTags.includes(tag)) {
+                            const newTags = [...currentTags, tag].join(', ')
+                            field.onChange(newTags)
+                          }
+                        }
+
+                        return (
+                          <FormItem>
+                            <FormLabel className="flex items-center gap-2">
+                              <TagIcon className="h-4 w-4" />
+                              Tags
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="Enter tags separated by commas..."
+                                className="rounded-lg"
+                                {...field}
+                              />
+                            </FormControl>
+                            <div className="space-y-2">
+                              <FormDescription>
+                                Click on example tags below to add them, or type your own (comma-separated)
+                              </FormDescription>
+                              <div className="flex flex-wrap gap-2">
+                                {EXAMPLE_TAGS.map((tag) => (
+                                  <Badge
+                                    key={tag}
+                                    variant="secondary"
+                                    className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
+                                    onClick={() => addTag(tag)}
+                                  >
+                                    {tag}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )
+                      }}
                     />
                   </div>
                 </FormSection>
@@ -411,25 +487,29 @@ const ModernImageUpload = React.memo<ModernImageUploadProps>(({
   maxImages,
   className = "",
 }) => {
+  const { uploadMultipleImages, isUploading, uploadProgress } = useCloudinaryUpload()
   const [selectedOrder, setSelectedOrder] = useState<Record<string, number>>({})
   const [hoveredImage, setHoveredImage] = useState<string | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
 
-  // Handle file selection
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle file selection with real Cloudinary upload
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || [])
     if (files.length === 0) return
 
-    // Simulate CloudinaryImage objects (replace with actual upload logic)
-    const newImages: CloudinaryImage[] = files.map((file, index) => ({
-      url: URL.createObjectURL(file),
-      public_id: `temp_${Date.now()}_${index}`,
-      width: 800, // Will be updated after actual upload
-      height: 600,
-    }))
+    if (images.length + files.length > maxImages) {
+      alert(`Maximum ${maxImages} images allowed`)
+      return
+    }
 
-    const updatedImages = [...images, ...newImages].slice(0, maxImages)
-    onImagesChange(updatedImages)
+    try {
+      const uploadedImages = await uploadMultipleImages(files)
+      const updatedImages = [...images, ...uploadedImages]
+      onImagesChange(updatedImages)
+    } catch (error) {
+      console.error("Upload failed:", error)
+      alert("Failed to upload images. Please try again.")
+    }
   }
 
   // Handle image ordering
@@ -502,23 +582,26 @@ const ModernImageUpload = React.memo<ModernImageUploadProps>(({
     setIsDragOver(false)
   }
 
-  const handleDrop = (event: React.DragEvent) => {
+  const handleDrop = async (event: React.DragEvent) => {
     event.preventDefault()
     setIsDragOver(false)
-    
-    const files = Array.from(event.dataTransfer.files)
+
+    const files = Array.from(event.dataTransfer.files).filter(file => file.type.startsWith('image/'))
     if (files.length === 0) return
 
-    // Simulate CloudinaryImage objects (replace with actual upload logic)
-    const newImages: CloudinaryImage[] = files.map((file, index) => ({
-      url: URL.createObjectURL(file),
-      public_id: `temp_${Date.now()}_${index}`,
-      width: 800,
-      height: 600,
-    }))
+    if (images.length + files.length > maxImages) {
+      alert(`Maximum ${maxImages} images allowed`)
+      return
+    }
 
-    const updatedImages = [...images, ...newImages].slice(0, maxImages)
-    onImagesChange(updatedImages)
+    try {
+      const uploadedImages = await uploadMultipleImages(files)
+      const updatedImages = [...images, ...uploadedImages]
+      onImagesChange(updatedImages)
+    } catch (error) {
+      console.error("Upload failed:", error)
+      alert("Failed to upload images. Please try again.")
+    }
   }
 
   const orderedCount = Object.keys(selectedOrder).length
@@ -561,10 +644,10 @@ const ModernImageUpload = React.memo<ModernImageUploadProps>(({
       <div
         className={cn(
           "relative border-2 border-dashed rounded-xl p-8 transition-all duration-200",
-          isDragOver 
-            ? "border-primary bg-primary/5 scale-[1.02]" 
+          isDragOver
+            ? "border-primary bg-primary/5 scale-[1.02]"
             : "border-muted-foreground/25 hover:border-primary/50",
-          images.length >= maxImages && "opacity-50 pointer-events-none"
+          (images.length >= maxImages || isUploading) && "opacity-50 pointer-events-none"
         )}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -576,7 +659,7 @@ const ModernImageUpload = React.memo<ModernImageUploadProps>(({
           accept="image/*"
           onChange={handleFileSelect}
           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-          disabled={images.length >= maxImages}
+          disabled={images.length >= maxImages || isUploading}
         />
         <div className="text-center space-y-4">
           <div className={cn(
@@ -587,20 +670,42 @@ const ModernImageUpload = React.memo<ModernImageUploadProps>(({
           </div>
           <div>
             <h4 className="font-medium text-foreground">
-              {isDragOver ? "Drop images here" : "Upload project images"}
+              {isUploading ? "Uploading..." : isDragOver ? "Drop images here" : "Upload project images"}
             </h4>
             <p className="text-sm text-muted-foreground mt-1">
-              Drag & drop or click to select • JPG, PNG up to 10MB each
+              {isUploading ? "Please wait while images are uploaded to Cloudinary" : "Drag & drop or click to select • JPG, PNG up to 10MB each"}
             </p>
           </div>
-          {images.length < maxImages && (
+          {images.length < maxImages && !isUploading && (
             <Button variant="outline" size="sm" className="rounded-lg">
               <Upload className="w-4 h-4 mr-2" />
               Choose Files
             </Button>
           )}
+          {isUploading && (
+            <Button variant="outline" size="sm" className="rounded-lg" disabled>
+              <div className="w-4 h-4 animate-spin rounded-full border-2 border-transparent border-t-current mr-2" />
+              Uploading...
+            </Button>
+          )}
         </div>
       </div>
+
+      {/* Upload Progress */}
+      {isUploading && uploadProgress && (
+        <div className="bg-muted/50 rounded-lg p-4">
+          <div className="flex justify-between text-sm mb-2">
+            <span>Uploading to Cloudinary...</span>
+            <span>{uploadProgress.percentage}%</span>
+          </div>
+          <div className="w-full bg-background rounded-full h-2">
+            <div
+              className="bg-primary h-2 rounded-full transition-all duration-300"
+              style={{ width: `${uploadProgress.percentage}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Images Grid */}
       {images.length > 0 && (

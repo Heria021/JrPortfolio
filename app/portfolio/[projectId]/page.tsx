@@ -22,7 +22,7 @@ export default function Portfolio() {
     loadEntries();
   }, []);
 
-  const project = portfolioEntries.find((entry: any) => entry.projectId === projectId);
+  const project = portfolioEntries.find((entry: any) => entry.id === projectId);
 
   return (
     <PageLayout>
@@ -56,8 +56,8 @@ export default function Portfolio() {
         <div className="mt-4">
           {project && (
             <ProjectGrid
-              projects={project.uploads.map((upload: any) => ({
-                imageUrl: upload.url,
+              projects={project.images.map((image: any) => ({
+                imageUrl: image.url,
               }))}
               columns="grid-cols-1 sm:grid-cols-2"
             />
