@@ -1,21 +1,27 @@
 "use client"
 
-import React from "react"
-import { useState } from "react"
+import React, { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { toast } from "sonner"
-import { CalendarIcon, TagIcon, FolderIcon, ImageIcon, Upload, ArrowLeft, FileText, X, RotateCcw, Eye, Star } from "lucide-react"
+import { format } from "date-fns"
 import Link from "next/link"
+import {
+  CalendarIcon,
+  TagIcon,
+  FolderIcon,
+  ImageIcon,
+  Upload,
+  ArrowLeft,
+  FileText,
+  X,
+  RotateCcw,
+  Eye,
+  Star,
+} from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Form,
   FormControl,
@@ -29,20 +35,13 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
-
 import { DatePicker } from "@/components/ui/date-picker"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
+
 import { portfolioSchema, type PortfolioFormData } from "@/lib/validations/auth"
 import { useCloudinaryUpload, type CloudinaryImage } from "@/hooks/use-cloudinary-upload"
 import { cn } from "@/lib/utils"
-import { format, parseISO } from "date-fns"
 
 // Category options for the dropdown
 const CATEGORY_OPTIONS = [
@@ -114,11 +113,14 @@ export default function PortfolioUploadPage({ className = "" }: PortfolioUploadP
 
       const result = await response.json()
       toast.success("Portfolio entry created successfully!")
-      
+
       // Reset form after successful submission
       form.reset()
-      
+
       console.log("Portfolio entry created:", result.data)
+
+      // Redirect to admin dashboard
+      window.location.href = "/admin"
     } catch (error) {
       console.error("Submission error:", error)
       toast.error(error instanceof Error ? error.message : "Failed to create portfolio entry")

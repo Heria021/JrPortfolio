@@ -84,7 +84,7 @@ export default function AdminLogin({ className = "" }: AdminLoginProps) {
       // Check if sign in was successful
       const session = await getSession()
       if (session) {
-        router.push("/admin/dashboard")
+        router.push("/admin")
         router.refresh()
       } else {
         setError("Authentication failed. Please try again.")

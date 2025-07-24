@@ -1,12 +1,6 @@
 import { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 
-// Admin credentials - in production, these should be stored securely
-const ADMIN_CREDENTIALS = {
-  email: "admin@example.com",
-  password: "admin123",
-} as const
-
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
@@ -20,15 +14,24 @@ export const authOptions: NextAuthOptions = {
           return null
         }
 
+        // Get admin credentials from environment variables
+        const adminEmail = process.env.ADMIN_EMAIL
+        const adminPassword = process.env.ADMIN_PASSWORD
+
+        if (!adminEmail || !adminPassword) {
+          console.error("Admin credentials not configured in environment variables")
+          return null
+        }
+
         // Verify admin credentials
         if (
-          credentials.email === ADMIN_CREDENTIALS.email &&
-          credentials.password === ADMIN_CREDENTIALS.password
+          credentials.email === adminEmail &&
+          credentials.password === adminPassword
         ) {
           return {
             id: "1",
-            email: ADMIN_CREDENTIALS.email,
-            name: "Admin",
+            email: adminEmail,
+            name: "Ramesh Suthar",
             role: "admin",
           }
         }
@@ -53,6 +56,17 @@ export const authOptions: NextAuthOptions = {
         session.user.role = token.role as string
       }
       return session
+    },
+    async redirect({ url, baseUrl }) {
+      // Redirect to admin dashboard after login
+      if (url.startsWith("/") && !url.startsWith("//")) {
+        return `${baseUrl}/admin`
+      }
+      // Allow callback URLs on the same origin
+      if (new URL(url).origin === baseUrl) {
+        return url
+      }
+      return `${baseUrl}/admin`
     },
   },
   session: {
