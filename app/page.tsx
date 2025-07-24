@@ -31,7 +31,7 @@ export default function Home() {
     <>
       <HeroSection
         images={images}
-        title="Ramesh Suthar"
+        title="Jr Suthar & Designs"
         subtitle="Experienced professional with 15 years of experience. Let's have a chat!"
       />
       <PageLayout withoutHeader={true}>
