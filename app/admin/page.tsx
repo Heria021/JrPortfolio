@@ -1,11 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import React from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { signIn } from "next-auth/react"
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { toast } from "sonner"
+import { useSession, signOut } from "next-auth/react"
+import Link from "next/link"
+import Image from "next/image"
+import { Upload, LogOut, Plus, FolderOpen, Calendar } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -15,111 +16,312 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { loginSchema, type LoginFormData } from "@/lib/validations/auth"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { cn } from "@/lib/utils"
 
-export default function AdminLoginPage() {
-  const [isLoading, setIsLoading] = useState(false)
+interface PortfolioProject {
+  id: string
+  slug: string
+  title: string
+  description: string
+  category?: string
+  tags?: string
+  completionDate?: string
+  images: Array<{
+    url: string
+    public_id: string
+    width: number
+    height: number
+  }>
+  createdAt: string
+  updatedAt: string
+}
+
+interface AdminDashboardProps {
+  className?: string
+}
+
+export default function AdminDashboard({ className = "" }: AdminDashboardProps) {
+  const { data: session, status } = useSession()
   const router = useRouter()
+  const [projects, setProjects] = useState<PortfolioProject[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const form = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-    },
-  })
+  useEffect(() => {
+    if (status === "loading") return
 
-  const onSubmit = async (data: LoginFormData) => {
-    setIsLoading(true)
+    if (!session) {
+      router.push("/admin/login")
+      return
+    }
 
+    fetchProjects()
+  }, [session, status, router])
+
+  const fetchProjects = async () => {
     try {
-      const result = await signIn("credentials", {
-        email: data.email,
-        password: data.password,
-        redirect: false,
-      })
+      setIsLoading(true)
+      setError(null)
 
-      if (result?.error) {
-        toast.error("Invalid credentials. Please try again.")
-      } else if (result?.ok) {
-        toast.success("Login successful!")
-        router.push("/admin/dashboard")
-        router.refresh()
+      const response = await fetch("/api/portfolio")
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch projects")
       }
+
+      const result = await response.json()
+      setProjects(result.data || [])
     } catch (error) {
-      console.error("Login error:", error)
-      toast.error("An error occurred. Please try again.")
+      console.error("Error fetching projects:", error)
+      setError("Failed to load projects")
     } finally {
       setIsLoading(false)
     }
   }
 
+  const handleSignOut = async () => {
+    try {
+      await signOut({ callbackUrl: "/admin/login" })
+    } catch (error) {
+      console.error("Failed to sign out:", error)
+    }
+  }
+
+  // Session loading state
+  if (status === "loading") {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-muted border-t-primary mx-auto" />
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!session) {
+    return null
+  }
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">
-            Admin Login
-          </CardTitle>
-          <CardDescription className="text-center">
-            Enter your credentials to access the admin dashboard
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="email"
-                        placeholder="admin@example.com"
-                        disabled={isLoading}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="password"
-                        placeholder="Enter your password"
-                        disabled={isLoading}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Signing in..." : "Sign In"}
+    <div className={cn("min-h-screen bg-background", className)}>
+      {/* Header */}
+      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-primary">
+                <FolderOpen className="h-4 w-4 text-primary-foreground" />
+              </div>
+              <div>
+                <h1 className="text-xl font-semibold text-foreground">Portfolio Admin</h1>
+                <p className="text-xs text-muted-foreground">Manage your architecture projects</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Link href="/admin/uploads">
+                <Button className="rounded-lg">
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload Project
+                </Button>
+              </Link>
+              <Button variant="outline" onClick={handleSignOut} className="rounded-lg">
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign Out
               </Button>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="container mx-auto px-4 py-8">
+        <ProjectsList 
+          projects={projects}
+          isLoading={isLoading}
+          error={error}
+          onRetry={fetchProjects}
+        />
+      </main>
     </div>
   )
 }
+
+interface ProjectsListProps {
+  projects: PortfolioProject[]
+  isLoading: boolean
+  error: string | null
+  onRetry: () => void
+  className?: string
+}
+
+const ProjectsList = React.memo<ProjectsListProps>(({
+  projects,
+  isLoading,
+  error,
+  onRetry,
+  className = "",
+}) => {
+  // Loading State
+  if (isLoading) {
+    return (
+      <div className={cn("h-full border rounded-xl flex flex-col", className)}>
+        <div className="p-6">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="border rounded-xl overflow-hidden">
+                {/* Card Header Skeleton */}
+                <div className="p-4 border-b border-border/50">
+                  <div className="h-5 w-3/4 bg-muted rounded animate-pulse mb-2" />
+                  <div className="h-3 w-1/2 bg-muted rounded animate-pulse" />
+                </div>
+                
+                {/* Card Content Skeleton */}
+                <div className="p-4 space-y-4">
+                  {/* Image Skeleton */}
+                  <div className="aspect-video w-full bg-muted rounded-lg animate-pulse" />
+                  
+                  {/* Description Skeleton */}
+                  <div className="space-y-2">
+                    <div className="h-3 w-full bg-muted rounded animate-pulse" />
+                    <div className="h-3 w-2/3 bg-muted rounded animate-pulse" />
+                  </div>
+                  
+                  {/* Metadata Skeleton */}
+                  <div className="flex justify-between pt-2 border-t border-border/50">
+                    <div className="h-3 w-16 bg-muted rounded animate-pulse" />
+                    <div className="h-3 w-20 bg-muted rounded animate-pulse" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Error State
+  if (error) {
+    return (
+      <div className={cn("h-full border rounded-xl flex items-center justify-center p-6", className)}>
+        <div className="text-center space-y-4">
+          <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
+            <FolderOpen className="h-6 w-6 text-destructive" />
+          </div>
+          <h3 className="font-medium">Failed to load projects</h3>
+          <p className="text-sm text-muted-foreground">{error}</p>
+          <Button variant="outline" size="sm" onClick={onRetry} className="rounded-lg">
+            Try Again
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  // Empty State
+  if (projects.length === 0) {
+    return (
+      <div className={cn("h-full border rounded-xl flex items-center justify-center p-6", className)}>
+        <div className="text-center space-y-4">
+          <FolderOpen className="h-12 w-12 text-muted-foreground mx-auto" />
+          <h3 className="font-medium">No projects yet</h3>
+          <p className="text-sm text-muted-foreground">
+            Start building your portfolio by uploading your first architecture project.
+          </p>
+          <Link href="/admin/uploads">
+            <Button variant="outline" size="sm" className="rounded-lg">
+              <Plus className="h-4 w-4 mr-1" />
+              Upload Your First Project
+            </Button>
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className={cn("h-full border rounded-xl flex flex-col overflow-hidden", className)}>
+      {/* Header */}
+      <div className="flex-shrink-0 p-4 border-b border-border/50">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-primary">
+            <FolderOpen className="h-4 w-4 text-primary-foreground" />
+          </div>
+          <div>
+            <h3 className="text-base font-semibold text-foreground">Your Projects</h3>
+            <p className="text-xs text-muted-foreground">
+              {projects.length} project{projects.length !== 1 ? 's' : ''} in portfolio
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Projects Grid */}
+      <ScrollArea className="flex-1 overflow-hidden">
+        <div className="p-6">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {projects.map((project) => (
+              <ProjectCard key={project.id} project={project} />
+            ))}
+          </div>
+        </div>
+      </ScrollArea>
+    </div>
+  )
+})
+
+ProjectsList.displayName = "ProjectsList"
+
+interface ProjectCardProps {
+  project: PortfolioProject
+  className?: string
+}
+
+const ProjectCard = React.memo<ProjectCardProps>(({ project, className = "" }) => {
+  return (
+    <Card className={cn("overflow-hidden hover:shadow-lg transition-all duration-200 hover:border-primary/20 rounded-xl", className)}>
+      <CardHeader className="pb-3">
+        <CardTitle className="line-clamp-1 text-base">{project.title}</CardTitle>
+        {project.category && (
+          <CardDescription className="text-xs">{project.category}</CardDescription>
+        )}
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Image Preview */}
+        {project.images.length > 0 && (
+          <div className="relative aspect-video overflow-hidden rounded-lg border">
+            <Image
+              src={project.images[0].url}
+              alt={project.title}
+              fill
+              className="object-cover transition-transform duration-200 hover:scale-105"
+              sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            />
+          </div>
+        )}
+
+        {/* Description */}
+        <p className="text-sm text-muted-foreground line-clamp-3">
+          {project.description}
+        </p>
+
+        {/* Metadata */}
+        <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-border/50">
+          <div className="flex items-center gap-1">
+            <span>{project.images.length} image{project.images.length !== 1 ? 's' : ''}</span>
+          </div>
+          {project.completionDate && (
+            <div className="flex items-center gap-1">
+              <Calendar className="h-3 w-3" />
+              <span>{new Date(project.completionDate).toLocaleDateString()}</span>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  )
+})
+
+ProjectCard.displayName = "ProjectCard"
