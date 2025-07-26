@@ -65,7 +65,45 @@ export function HeroSection({
                 style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.7)' }}
             >
                 <div className="flex justify-between items-start md:items-center gap-4">
-                    <h2 className="text-xl font-medium">{title}</h2>
+                    {/* Enhanced logo with multiple visibility options */}
+                    <div className="relative">
+                        {/* Option 1: Logo with backdrop blur background */}
+                        <div className="absolute inset-0 bg-white/20 backdrop-blur-sm rounded-lg -m-2"></div>
+                        <Image
+                            src="/logo.png"
+                            alt="Logo"
+                            width={120}
+                            height={40}
+                            className="object-contain relative z-10 filter drop-shadow-lg"
+                        />
+                    </div>
+
+                    {/* Alternative Option 2: Logo with solid background (uncomment to use) */}
+                    {/* 
+                    <div className="bg-white/90 p-3 rounded-lg backdrop-blur-sm">
+                        <Image
+                            src="/logo.png"
+                            alt="Logo"
+                            width={120}
+                            height={40}
+                            className="object-contain"
+                        />
+                    </div>
+                    */}
+
+                    {/* Alternative Option 3: Logo with dark background (uncomment to use) */}
+                    {/* 
+                    <div className="bg-black/50 p-3 rounded-lg backdrop-blur-sm">
+                        <Image
+                            src="/logo.png"
+                            alt="Logo"
+                            width={120}
+                            height={40}
+                            className="object-contain brightness-0 invert"
+                        />
+                    </div>
+                    */}
+
                     <div className="hidden sm:flex gap-8 text-sm">
                         <Link href="/">
                             <p className="hover:underline cursor-pointer">Portfolio</p>

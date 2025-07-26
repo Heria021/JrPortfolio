@@ -12,17 +12,17 @@ export function MobileMenu() {
 
     return (
         <>
-            <Button size="icon" variant="outline" onClick={toggleMenu}>
+            <Button size="icon" variant="outline" className="text-foreground" onClick={toggleMenu}>
                 {isOpen ? <X /> : <Menu />}
             </Button>
 
             {isOpen && (
-                <div className="fixed inset-0 bg-black bg-opacity-95 z-50 flex flex-col items-center justify-center space-y-6 text-white text-sm">
+                <div className="fixed inset-0 bg-background/95 backdrop-blur-sm z-50 flex flex-col items-center justify-center space-y-6 text-foreground-foreground text-sm">
                     <Link href="/" onClick={toggleMenu}>
-                        <p className="hover:underline">Portfolio</p>
+                        <p className="hover:underline transition-colors">Portfolio</p>
                     </Link>
                     <Link href="/resume" onClick={toggleMenu}>
-                        <p className="hover:underline">Resume</p>
+                        <p className="hover:underline transition-colors">Resume</p>
                     </Link>
                 </div>
             )}
