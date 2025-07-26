@@ -110,6 +110,7 @@ export default function AdminDashboard({ className = "" }: AdminDashboardProps) 
       <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
+            {/* Left - Logo and Title */}
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-primary">
                 <FolderOpen className="h-4 w-4 text-primary-foreground" />
@@ -119,16 +120,22 @@ export default function AdminDashboard({ className = "" }: AdminDashboardProps) 
                 <p className="text-xs text-muted-foreground">Manage your architecture projects</p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+
+            {/* Right - Buttons */}
+            <div className="flex items-center gap-2">
               <Link href="/admin/uploads">
-                <Button className="rounded-lg">
-                  <Upload className="h-4 w-4 mr-2" />
-                  Upload Project
+                <Button className="rounded-lg px-2 lg:px-4">
+                  <Upload className="h-4 w-4" />
+                  <span className="hidden lg:inline ml-2">Upload Project</span>
                 </Button>
               </Link>
-              <Button variant="outline" onClick={handleSignOut} className="rounded-lg">
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
+              <Button
+                variant="outline"
+                onClick={handleSignOut}
+                className="rounded-lg px-2 lg:px-4"
+              >
+                <LogOut className="h-4 w-4" />
+                <span className="hidden lg:inline ml-2">Sign Out</span>
               </Button>
             </div>
           </div>
@@ -137,7 +144,7 @@ export default function AdminDashboard({ className = "" }: AdminDashboardProps) 
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        <ProjectsList 
+        <ProjectsList
           projects={projects}
           isLoading={isLoading}
           error={error}
@@ -176,18 +183,18 @@ const ProjectsList = React.memo<ProjectsListProps>(({
                   <div className="h-5 w-3/4 bg-muted rounded animate-pulse mb-2" />
                   <div className="h-3 w-1/2 bg-muted rounded animate-pulse" />
                 </div>
-                
+
                 {/* Card Content Skeleton */}
                 <div className="p-4 space-y-4">
                   {/* Image Skeleton */}
                   <div className="aspect-video w-full bg-muted rounded-lg animate-pulse" />
-                  
+
                   {/* Description Skeleton */}
                   <div className="space-y-2">
                     <div className="h-3 w-full bg-muted rounded animate-pulse" />
                     <div className="h-3 w-2/3 bg-muted rounded animate-pulse" />
                   </div>
-                  
+
                   {/* Metadata Skeleton */}
                   <div className="flex justify-between pt-2 border-t border-border/50">
                     <div className="h-3 w-16 bg-muted rounded animate-pulse" />

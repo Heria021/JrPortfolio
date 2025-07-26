@@ -139,19 +139,22 @@ export default function PortfolioUploadPage({ className = "" }: PortfolioUploadP
       <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
+            {/* Left side: Icon + Title */}
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-primary">
                 <Upload className="h-4 w-4 text-primary-foreground" />
               </div>
-              <div>
+              <div className="">
                 <h1 className="text-xl font-semibold text-foreground">Upload Project</h1>
                 <p className="text-xs text-muted-foreground">Add new architecture project to portfolio</p>
               </div>
             </div>
+
+            {/* Right side: Button */}
             <Link href="/admin">
-              <Button variant="outline" className="rounded-lg">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Dashboard
+              <Button variant="outline" className="rounded-lg flex items-center gap-2 text-sm">
+                <ArrowLeft className="h-4 w-4" />
+                <span className="hidden sm:inline">Back to Dashboard</span>
               </Button>
             </Link>
           </div>
@@ -160,7 +163,7 @@ export default function PortfolioUploadPage({ className = "" }: PortfolioUploadP
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        <ProjectUploadForm 
+        <ProjectUploadForm
           onSubmit={onSubmit}
           onImagesChange={handleImagesChange}
           form={form}
@@ -210,8 +213,8 @@ const ProjectUploadForm = React.memo<ProjectUploadFormProps>(({
             <ScrollArea className="flex-1 overflow-hidden">
               <div className="p-6 space-y-8">
                 {/* Basic Information Section */}
-                <FormSection 
-                  title="Basic Information" 
+                <FormSection
+                  title="Basic Information"
                   icon={FileText}
                   description="Essential project details"
                 >
@@ -261,8 +264,8 @@ const ProjectUploadForm = React.memo<ProjectUploadFormProps>(({
                 </FormSection>
 
                 {/* Additional Details Section */}
-                <FormSection 
-                  title="Additional Details" 
+                <FormSection
+                  title="Additional Details"
                   icon={TagIcon}
                   description="Category, tags, and completion date"
                 >
@@ -378,8 +381,8 @@ const ProjectUploadForm = React.memo<ProjectUploadFormProps>(({
                 </FormSection>
 
                 {/* Image Upload Section */}
-                <FormSection 
-                  title="Project Images" 
+                <FormSection
+                  title="Project Images"
                   icon={ImageIcon}
                   description="Upload and organize your project photos"
                 >
@@ -446,12 +449,12 @@ interface FormSectionProps {
   className?: string
 }
 
-const FormSection = React.memo<FormSectionProps>(({ 
-  title, 
-  icon: Icon, 
-  description, 
-  children, 
-  className = "" 
+const FormSection = React.memo<FormSectionProps>(({
+  title,
+  icon: Icon,
+  description,
+  children,
+  className = ""
 }) => {
   return (
     <div className={cn("space-y-4", className)}>
@@ -630,9 +633,9 @@ const ModernImageUpload = React.memo<ModernImageUploadProps>(({
           )}
         </div>
         {orderedCount > 0 && (
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={resetOrder}
             className="rounded-lg text-xs"
           >
@@ -718,7 +721,7 @@ const ModernImageUpload = React.memo<ModernImageUploadProps>(({
               Click images to set display order • First ordered image becomes cover
             </p>
           </div>
-          
+
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {images.map((image, index) => {
               const orderNumber = selectedOrder[image.public_id]
@@ -730,8 +733,8 @@ const ModernImageUpload = React.memo<ModernImageUploadProps>(({
                   key={image.public_id}
                   className={cn(
                     "relative group aspect-square rounded-lg overflow-hidden border cursor-pointer",
-                    orderNumber 
-                      ? "border-primary border-2" 
+                    orderNumber
+                      ? "border-primary border-2"
                       : "border-border hover:border-primary/50"
                   )}
                   onClick={() => handleImageClick(image.public_id)}
@@ -802,8 +805,8 @@ const ModernImageUpload = React.memo<ModernImageUploadProps>(({
                       return orderedImage ? (
                         <div key={orderNum} className="flex items-center gap-2 bg-white rounded-lg p-2 border">
                           <span className="text-xs font-medium text-primary">{orderNum}.</span>
-                          <img 
-                            src={orderedImage.url} 
+                          <img
+                            src={orderedImage.url}
                             alt={`Position ${orderNum}`}
                             className="w-8 h-8 rounded object-cover"
                           />
