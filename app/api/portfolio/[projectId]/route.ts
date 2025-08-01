@@ -22,7 +22,7 @@ export async function GET(
       )
     }
 
-    const projectId = params.projectId
+    const { projectId } = await params
 
     // Get portfolio entry by ID
     const portfolioEntry = await getPortfolioEntryById(projectId)
@@ -65,7 +65,7 @@ export async function PUT(
       )
     }
 
-    const projectId = params.projectId
+    const { projectId } = await params
 
     // Parse and validate request body
     const body = await request.json()
@@ -121,7 +121,7 @@ export async function DELETE(
       )
     }
 
-    const projectId = params.projectId
+    const { projectId } = await params
 
     // Delete portfolio entry
     const deleted = await deletePortfolioEntry(projectId)

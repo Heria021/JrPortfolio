@@ -40,6 +40,17 @@ import { Separator } from "@/components/ui/separator"
 import { DatePicker } from "@/components/ui/date-picker"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger
+} from "@/components/ui/alert-dialog"
 
 import { portfolioSchema, type PortfolioFormData } from "@/lib/validations/auth"
 import type { CloudinaryImage } from "@/hooks/use-cloudinary-upload"
@@ -93,7 +104,10 @@ export default function AdminProjectEditPage({ className = "" }: AdminProjectEdi
   const projectId = params.projectId as string
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [project, setProject] = useState<PortfolioEntry | null>(null)
+  const [deleteConfirmation, setDeleteConfirmation] = useState("")
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
   const form = useForm<PortfolioFormData>({
     resolver: zodResolver(portfolioSchema),
@@ -179,6 +193,41 @@ export default function AdminProjectEditPage({ className = "" }: AdminProjectEdi
     form.setValue("images", images, { shouldValidate: true })
   }
 
+  const handleDelete = async () => {
+    if (!project || deleteConfirmation !== project.title) {
+      toast.error("Please enter the exact project title to confirm deletion")
+      return
+    }
+
+    setIsDeleting(true)
+
+    try {
+      const response = await fetch(`/api/portfolio/${projectId}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to delete project")
+      }
+
+      toast.success("Project deleted successfully!")
+
+      // Redirect to admin dashboard
+      window.location.href = "/admin"
+    } catch (error) {
+      console.error("Delete error:", error)
+      toast.error(error instanceof Error ? error.message : "Failed to delete project")
+    } finally {
+      setIsDeleting(false)
+      setShowDeleteDialog(false)
+      setDeleteConfirmation("")
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -237,12 +286,18 @@ export default function AdminProjectEditPage({ className = "" }: AdminProjectEdi
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        <ProjectEditForm 
+        <ProjectEditForm
           onSubmit={onSubmit}
           onImagesChange={handleImagesChange}
           form={form}
           isSubmitting={isSubmitting}
+          isDeleting={isDeleting}
           project={project}
+          onDelete={handleDelete}
+          deleteConfirmation={deleteConfirmation}
+          setDeleteConfirmation={setDeleteConfirmation}
+          showDeleteDialog={showDeleteDialog}
+          setShowDeleteDialog={setShowDeleteDialog}
         />
       </main>
     </div>
@@ -254,7 +309,13 @@ interface ProjectEditFormProps {
   onImagesChange: (images: CloudinaryImage[]) => void
   form: ReturnType<typeof useForm<PortfolioFormData>>
   isSubmitting: boolean
+  isDeleting: boolean
   project: PortfolioEntry
+  onDelete: () => Promise<void>
+  deleteConfirmation: string
+  setDeleteConfirmation: (value: string) => void
+  showDeleteDialog: boolean
+  setShowDeleteDialog: (value: boolean) => void
   className?: string
 }
 
@@ -263,7 +324,13 @@ const ProjectEditForm = React.memo<ProjectEditFormProps>(({
   onImagesChange,
   form,
   isSubmitting,
+  isDeleting,
   project,
+  onDelete,
+  deleteConfirmation,
+  setDeleteConfirmation,
+  showDeleteDialog,
+  setShowDeleteDialog,
   className = "",
 }) => {
   return (
@@ -488,29 +555,101 @@ const ProjectEditForm = React.memo<ProjectEditFormProps>(({
 
             {/* Submit Buttons */}
             <div className="flex-shrink-0 p-6 border-t border-border/50 bg-background/50">
-              <div className="flex justify-end gap-3">
-                <Link href="/admin">
-                  <Button type="button" variant="outline" className="rounded-lg">
-                    Cancel
+              <div className="flex justify-between items-center">
+                {/* Delete Button */}
+                <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      className="rounded-lg"
+                      disabled={isSubmitting || isDeleting}
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Delete Project
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Project</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This action cannot be undone. This will permanently delete the project "{project.title}" and all associated data.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-sm font-medium text-foreground">
+                          To confirm deletion, please type the project title exactly:
+                        </label>
+                        <p className="text-sm text-muted-foreground mt-1 font-mono bg-muted px-2 py-1 rounded">
+                          {project.title}
+                        </p>
+                      </div>
+                      <Input
+                        placeholder="Enter project title to confirm"
+                        value={deleteConfirmation}
+                        onChange={(e) => setDeleteConfirmation(e.target.value)}
+                        className="rounded-lg"
+                      />
+                    </div>
+
+                    <AlertDialogFooter>
+                      <AlertDialogCancel
+                        onClick={() => {
+                          setDeleteConfirmation("")
+                          setShowDeleteDialog(false)
+                        }}
+                        disabled={isDeleting}
+                      >
+                        Cancel
+                      </AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={onDelete}
+                        disabled={deleteConfirmation !== project.title || isDeleting}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        {isDeleting ? (
+                          <>
+                            <div className="w-4 h-4 animate-spin rounded-full border-2 border-transparent border-t-current mr-2" />
+                            Deleting...
+                          </>
+                        ) : (
+                          <>
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Delete Project
+                          </>
+                        )}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+
+                {/* Right side buttons */}
+                <div className="flex gap-3">
+                  <Link href="/admin">
+                    <Button type="button" variant="outline" className="rounded-lg">
+                      Cancel
+                    </Button>
+                  </Link>
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting || isDeleting}
+                    className="min-w-[120px] rounded-lg"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <div className="w-4 h-4 animate-spin rounded-full border-2 border-transparent border-t-current mr-2" />
+                        Updating...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4 mr-2" />
+                        Update Project
+                      </>
+                    )}
                   </Button>
-                </Link>
-                <Button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="min-w-[120px] rounded-lg"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <div className="w-4 h-4 animate-spin rounded-full border-2 border-transparent border-t-current mr-2" />
-                      Updating...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="h-4 w-4 mr-2" />
-                      Update Project
-                    </>
-                  )}
-                </Button>
+                </div>
               </div>
             </div>
           </form>
