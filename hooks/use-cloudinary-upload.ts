@@ -33,8 +33,15 @@ export function useCloudinaryUpload() {
     const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
     const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET
 
+    console.log('Cloudinary config check:', {
+      cloudName: cloudName ? 'Set' : 'Missing',
+      uploadPreset: uploadPreset ? 'Set' : 'Missing',
+      actualCloudName: cloudName,
+      actualUploadPreset: uploadPreset
+    })
+
     if (!cloudName || !uploadPreset) {
-      throw new Error('Cloudinary configuration missing. Please check environment variables.')
+      throw new Error(`Cloudinary configuration missing. Cloud name: ${cloudName ? 'Set' : 'Missing'}, Upload preset: ${uploadPreset ? 'Set' : 'Missing'}`)
     }
 
     setIsUploading(true)
@@ -46,23 +53,49 @@ export function useCloudinaryUpload() {
       formData.append('upload_preset', uploadPreset)
       formData.append('folder', 'portfolio')
 
+      console.log('Uploading to Cloudinary:', {
+        cloudName,
+        uploadPreset,
+        fileName: file.name,
+        fileSize: file.size
+      })
+
       const response = await fetch(
         `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
         {
           method: 'POST',
           body: formData,
+          // Add headers to help with CORS and SSL issues
+          headers: {
+            'Accept': 'application/json',
+          },
         }
       )
 
+      console.log('Cloudinary response status:', response.status, response.statusText)
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
+        console.error('Cloudinary upload error:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorData
+        })
+
         if (response.status === 400 && errorData.error?.message?.includes('Invalid upload preset')) {
           throw new Error('Upload preset "portfolio_uploads" not found. Please create it in your Cloudinary dashboard.')
         }
-        throw new Error(`Upload failed: ${response.statusText}`)
+        if (response.status === 401) {
+          throw new Error('Cloudinary authentication failed. Please check your upload preset configuration.')
+        }
+        throw new Error(`Upload failed: ${response.statusText} (${response.status})`)
       }
 
       const data = await response.json()
+      console.log('Cloudinary upload successful:', {
+        public_id: data.public_id,
+        secure_url: data.secure_url
+      })
 
       // Return Cloudinary response in our expected format
       const cloudinaryImage: CloudinaryImage = {
@@ -79,7 +112,19 @@ export function useCloudinaryUpload() {
     } catch (error) {
       setIsUploading(false)
       setUploadProgress(null)
-      throw error
+
+      console.error('Upload error details:', error)
+
+      // Handle specific error types
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        throw new Error('Network error: Unable to connect to Cloudinary. Please check your internet connection and try again.')
+      }
+
+      if (error instanceof Error) {
+        throw error
+      }
+
+      throw new Error('An unexpected error occurred during upload. Please try again.')
     }
   }
 
