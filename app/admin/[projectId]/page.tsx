@@ -7,6 +7,8 @@ import { toast } from "sonner"
 import { format } from "date-fns"
 import Link from "next/link"
 import { useParams } from "next/navigation"
+import { useQuery, useMutation } from "convex/react"
+import { api } from "@/convex/_generated/api"
 import {
   CalendarIcon,
   TagIcon,
@@ -88,8 +90,8 @@ const EXAMPLE_TAGS = [
   "innovative"
 ]
 
-interface PortfolioEntry extends PortfolioFormData {
-  id: string
+type PortfolioEntry = PortfolioFormData & {
+  _id: string
   slug: string
   createdAt: string
   updatedAt: string
@@ -121,63 +123,38 @@ export default function AdminProjectEditPage({ className = "" }: AdminProjectEdi
     },
   })
 
-  // Load project data
-  useEffect(() => {
-    const loadProject = async () => {
-      try {
-        const response = await fetch(`/api/portfolio/${projectId}`)
-        if (!response.ok) {
-          throw new Error("Project not found")
-        }
-        
-        const result = await response.json()
-        const projectData = result.data
-        
-        setProject(projectData)
-        
-        // Populate form with project data
-        form.reset({
-          title: projectData.title,
-          description: projectData.description,
-          category: projectData.category || "",
-          tags: projectData.tags || "",
-          completionDate: projectData.completionDate || "",
-          images: projectData.images || [],
-        })
-      } catch (error) {
-        console.error("Failed to load project:", error)
-        toast.error("Failed to load project")
-      } finally {
-        setIsLoading(false)
-      }
-    }
+  // Convex data
+  const projectDoc = useQuery(api.portfolio.getById, projectId ? { id: projectId as any } : "skip")
+  const updateMutation = useMutation(api.portfolio.update)
+  const deleteMutation = useMutation(api.portfolio.remove)
 
-    if (projectId) {
-      loadProject()
+  useEffect(() => {
+    if (projectDoc === undefined) return // still loading
+    if (projectDoc === null) {
+      setIsLoading(false)
+      toast.error("Failed to load project")
+      return
     }
-  }, [projectId, form])
+    setProject(projectDoc as unknown as PortfolioEntry)
+    form.reset({
+      title: projectDoc.title,
+      description: projectDoc.description,
+      category: projectDoc.category || "",
+      tags: projectDoc.tags || "",
+      completionDate: projectDoc.completionDate || "",
+      images: projectDoc.images || [],
+    })
+    setIsLoading(false)
+  }, [projectDoc, form])
 
   const onSubmit = async (data: PortfolioFormData) => {
     setIsSubmitting(true)
 
     try {
-      const response = await fetch(`/api/portfolio/${projectId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to update project")
-      }
-
-      const result = await response.json()
+      const result = await updateMutation({ id: projectId as any, ...data })
       toast.success("Project updated successfully!")
       
-      console.log("Project updated:", result.data)
+      console.log("Project updated:", result)
       
       // Redirect to admin dashboard
       window.location.href = "/admin"
@@ -202,17 +179,7 @@ export default function AdminProjectEditPage({ className = "" }: AdminProjectEdi
     setIsDeleting(true)
 
     try {
-      const response = await fetch(`/api/portfolio/${projectId}`, {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to delete project")
-      }
+      await deleteMutation({ id: projectId as any })
 
       toast.success("Project deleted successfully!")
 

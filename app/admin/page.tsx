@@ -1,7 +1,7 @@
 "use client"
 
 import React from "react"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { useSession, signOut } from "next-auth/react"
 import Link from "next/link"
@@ -18,9 +18,13 @@ import {
 } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
+import { useQuery } from "convex/react"
+import { api } from "@/convex/_generated/api"
+import { useQuery } from "convex/react"
+import { api } from "@/convex/_generated/api"
 
 interface PortfolioProject {
-  id: string
+  _id: string
   slug: string
   title: string
   description: string
@@ -47,6 +51,7 @@ export default function AdminDashboard({ className = "" }: AdminDashboardProps) 
   const [projects, setProjects] = useState<PortfolioProject[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const convexProjects = useQuery(api.portfolio.list, {})
 
   useEffect(() => {
     if (status === "loading") return
@@ -63,15 +68,8 @@ export default function AdminDashboard({ className = "" }: AdminDashboardProps) 
     try {
       setIsLoading(true)
       setError(null)
-
-      const response = await fetch("/api/portfolio")
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch projects")
-      }
-
-      const result = await response.json()
-      setProjects(result.data || [])
+      const result = convexProjects
+      setProjects((result as unknown as PortfolioProject[]) || [])
     } catch (error) {
       console.error("Error fetching projects:", error)
       setError("Failed to load projects")
@@ -270,7 +268,7 @@ const ProjectsList = React.memo<ProjectsListProps>(({
         <div className="p-6">
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {projects.map((project) => (
-              <ProjectCard key={project.id} project={project} />
+              <ProjectCard key={project._id} project={project} />
             ))}
           </div>
         </div>
@@ -329,13 +327,13 @@ const ProjectCard = React.memo<ProjectCardProps>(({ project, className = "" }) =
 
         {/* Action Buttons */}
         <div className="flex gap-2 pt-3">
-          <Link href={`/admin/${project.id}`} className="flex-1">
+          <Link href={`/admin/${project._id}`} className="flex-1">
             <Button variant="outline" size="sm" className="w-full rounded-lg">
               <Edit className="h-3 w-3 mr-1" />
               Edit
             </Button>
           </Link>
-          <Link href={`/portfolio/${project.id}`} className="flex-1">
+          <Link href={`/portfolio/${project._id}`} className="flex-1">
             <Button variant="secondary" size="sm" className="w-full rounded-lg">
               <ExternalLink className="h-3 w-3 mr-1" />
               View

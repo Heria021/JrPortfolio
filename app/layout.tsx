@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import { ThemeProvider } from "next-themes"
+import { ConvexClientProvider } from "@/components/providers/convex-provider"
 
 import { AuthSessionProvider } from "@/components/providers/session-provider"
 import { Toaster } from "@/components/ui/sonner"
@@ -34,8 +35,10 @@ export default function RootLayout({ children }: RootLayoutProps) {
       >
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <AuthSessionProvider>
-            {children}
-            <Toaster />
+            <ConvexClientProvider>
+              {children}
+              <Toaster />
+            </ConvexClientProvider>
           </AuthSessionProvider>
         </ThemeProvider>
       </body>

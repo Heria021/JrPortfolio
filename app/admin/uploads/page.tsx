@@ -42,6 +42,8 @@ import { Badge } from "@/components/ui/badge"
 import { portfolioSchema, type PortfolioFormData } from "@/lib/validations/auth"
 import { useCloudinaryUpload, type CloudinaryImage } from "@/hooks/use-cloudinary-upload"
 import { cn } from "@/lib/utils"
+import { useMutation } from "convex/react"
+import { api } from "@/convex/_generated/api"
 
 // Category options for the dropdown
 const CATEGORY_OPTIONS = [
@@ -81,6 +83,7 @@ interface PortfolioUploadPageProps {
 
 export default function PortfolioUploadPage({ className = "" }: PortfolioUploadPageProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const createMutation = useMutation(api.portfolio.create)
 
   const form = useForm<PortfolioFormData>({
     resolver: zodResolver(portfolioSchema),
@@ -98,26 +101,13 @@ export default function PortfolioUploadPage({ className = "" }: PortfolioUploadP
     setIsSubmitting(true)
 
     try {
-      const response = await fetch("/api/portfolio", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to create portfolio entry")
-      }
-
-      const result = await response.json()
+      const result = await createMutation(data)
       toast.success("Portfolio entry created successfully!")
 
       // Reset form after successful submission
       form.reset()
 
-      console.log("Portfolio entry created:", result.data)
+      console.log("Portfolio entry created:", result)
 
       // Redirect to admin dashboard
       window.location.href = "/admin"

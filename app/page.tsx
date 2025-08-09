@@ -1,31 +1,24 @@
 'use client';
 
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import { PageLayout } from "@/components/PageLayout";
 import { HeroSection } from "./_components/HeroSection";
 import { AboutSection } from "./_components/AboutSection";
 import { ProjectGrid } from "./_components/ProjectGrid";
-import fetchPortfolioEntries from "@/lib/Portfolio/fetchPortfolioEntries";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 
 const images = ["/pexels-heyho-6969873.jpg", "/pexels-heyho-6758788.jpg", "/pexels-ansar-muhammad-380085065-23916863.jpg"];
 
 export default function Home() {
-  const [portfolioEntries, setPortfolioEntries] = useState<any[]>([]);
+  const portfolioEntries = useQuery(api.portfolio.list, {}) ?? [];
 
-  useEffect(() => {
-    const loadEntries = async () => {
-      const data = await fetchPortfolioEntries();
-      setPortfolioEntries(data || []);
-    };
-    loadEntries();
-  }, []);
-
-  const formattedProjects = portfolioEntries.map((entry: any) => ({
+  const formattedProjects = useMemo(() => portfolioEntries.map((entry: any) => ({
     imageUrl: entry.images?.[0]?.url || "",
     title: entry.title || "Untitled Project",
     description: entry.description || "No description available.",
-    id: entry.id
-  }));
+    id: entry._id
+  })), [portfolioEntries]);
 
   return (
     <>

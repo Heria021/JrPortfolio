@@ -4,25 +4,17 @@ import { PageLayout } from "@/components/PageLayout";
 import { Separator } from "@/components/ui/separator";
 import { AboutSection } from "../../_components/AboutSection";
 import { useParams } from "next/navigation";
-import { useState, useEffect } from "react";
-import fetchPortfolioEntries from "@/lib/Portfolio/fetchPortfolioEntries";
+import { useMemo } from "react";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { ProjectGrid } from "../_components/ProjectGrid";
 
 export default function Portfolio() {
   const params = useParams();
-  const projectId = params?.projectId;
+  const projectId = params?.projectId as string;
 
-  const [portfolioEntries, setPortfolioEntries] = useState<any[]>([]);
-
-  useEffect(() => {
-    const loadEntries = async () => {
-      const data = await fetchPortfolioEntries();
-      setPortfolioEntries(data || []);
-    };
-    loadEntries();
-  }, []);
-
-  const project = portfolioEntries.find((entry: any) => entry.id === projectId);
+  const entries = useQuery(api.portfolio.list, {}) ?? [];
+  const project = useMemo(() => entries.find((entry: any) => entry._id === projectId), [entries, projectId]);
 
   return (
     <PageLayout>

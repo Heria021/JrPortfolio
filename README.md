@@ -2,6 +2,8 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
+This app now uses Convex for all portfolio data. Ensure `NEXT_PUBLIC_CONVEX_URL` is set in your environment. Run `npx convex dev` in development to generate `convex/_generated` and push schema/functions.
+
 First, run the development server:
 
 ```bash
