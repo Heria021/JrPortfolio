@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useEffect, useRef, useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { toast } from "sonner"
@@ -482,29 +482,63 @@ const ModernImageUpload = React.memo<ModernImageUploadProps>(({
   maxImages,
   className = "",
 }) => {
-  const { uploadMultipleImages, isUploading, uploadProgress } = useCloudinaryUpload()
+  const { uploadImageWithId, cancelUpload, perFileProgress, isUploading } = useCloudinaryUpload()
   const [selectedOrder, setSelectedOrder] = useState<Record<string, number>>({})
   const [hoveredImage, setHoveredImage] = useState<string | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
+  const [pendingUploads, setPendingUploads] = useState<Record<string, { file: File; previewUrl: string; status: 'uploading' | 'success' | 'error'; }>>({})
+  const imagesRef = useRef(images)
 
-  // Handle file selection with real Cloudinary upload
-  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files || [])
-    if (files.length === 0) return
+  useEffect(() => {
+    imagesRef.current = images
+  }, [images])
 
-    if (images.length + files.length > maxImages) {
-      alert(`Maximum ${maxImages} images allowed`)
+  const startUploads = async (files: File[]) => {
+    const remaining = maxImages - images.length - Object.keys(pendingUploads).length
+    if (files.length > remaining) {
+      alert(`You can upload ${remaining} more image${remaining !== 1 ? 's' : ''}`)
       return
     }
 
-    try {
-      const uploadedImages = await uploadMultipleImages(files)
-      const updatedImages = [...images, ...uploadedImages]
-      onImagesChange(updatedImages)
-    } catch (error) {
-      console.error("Upload failed:", error)
-      alert("Failed to upload images. Please try again.")
-    }
+    const localEntries = files.map((file, idx) => ({
+      id: `${file.name}-${Date.now()}-${idx}`,
+      file,
+      previewUrl: URL.createObjectURL(file),
+    }))
+
+    setPendingUploads(prev => {
+      const next = { ...prev }
+      for (const { id, file, previewUrl } of localEntries) {
+        next[id] = { file, previewUrl, status: 'uploading' }
+      }
+      return next
+    })
+
+    await Promise.all(
+      localEntries.map(async ({ id, file }) => {
+        try {
+          const uploaded = await uploadImageWithId(file, id)
+          const next = [...imagesRef.current, uploaded]
+          imagesRef.current = next
+          onImagesChange(next)
+          setPendingUploads(prev => ({ ...prev, [id]: { ...prev[id], status: 'success' } }))
+          setTimeout(() => {
+            setPendingUploads(prev => {
+              const { [id]: _, ...rest } = prev
+              return rest
+            })
+          }, 800)
+        } catch (err) {
+          setPendingUploads(prev => ({ ...prev, [id]: { ...prev[id], status: 'error' } }))
+        }
+      })
+    )
+  }
+
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || [])
+    if (files.length === 0) return
+    await startUploads(files)
   }
 
   // Handle image ordering
@@ -584,18 +618,28 @@ const ModernImageUpload = React.memo<ModernImageUploadProps>(({
     const files = Array.from(event.dataTransfer.files).filter(file => file.type.startsWith('image/'))
     if (files.length === 0) return
 
-    if (images.length + files.length > maxImages) {
-      alert(`Maximum ${maxImages} images allowed`)
-      return
-    }
+    await startUploads(files)
+  }
 
+  // Retry a failed pending upload
+  const retryUpload = async (uploadId: string) => {
+    const entry = pendingUploads[uploadId]
+    if (!entry) return
+    setPendingUploads(prev => ({ ...prev, [uploadId]: { ...entry, status: 'uploading' } }))
     try {
-      const uploadedImages = await uploadMultipleImages(files)
-      const updatedImages = [...images, ...uploadedImages]
-      onImagesChange(updatedImages)
-    } catch (error) {
-      console.error("Upload failed:", error)
-      alert("Failed to upload images. Please try again.")
+      const uploaded = await uploadImageWithId(entry.file, uploadId)
+      const next = [...imagesRef.current, uploaded]
+      imagesRef.current = next
+      onImagesChange(next)
+      setPendingUploads(prev => ({ ...prev, [uploadId]: { ...entry, status: 'success' } }))
+      setTimeout(() => {
+        setPendingUploads(prev => {
+          const { [uploadId]: _, ...rest } = prev
+          return rest
+        })
+      }, 800)
+    } catch (e) {
+      setPendingUploads(prev => ({ ...prev, [uploadId]: { ...entry, status: 'error' } }))
     }
   }
 
@@ -642,7 +686,7 @@ const ModernImageUpload = React.memo<ModernImageUploadProps>(({
           isDragOver
             ? "border-primary bg-primary/5 scale-[1.02]"
             : "border-muted-foreground/25 hover:border-primary/50",
-          (images.length >= maxImages || isUploading) && "opacity-50 pointer-events-none"
+          (images.length + Object.keys(pendingUploads).length >= maxImages) && "opacity-50 pointer-events-none"
         )}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -654,7 +698,7 @@ const ModernImageUpload = React.memo<ModernImageUploadProps>(({
           accept="image/*"
           onChange={handleFileSelect}
           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-          disabled={images.length >= maxImages || isUploading}
+          disabled={images.length + Object.keys(pendingUploads).length >= maxImages}
         />
         <div className="text-center space-y-4">
           <div className={cn(
@@ -664,40 +708,62 @@ const ModernImageUpload = React.memo<ModernImageUploadProps>(({
             <Upload className="w-8 h-8" />
           </div>
           <div>
-            <h4 className="font-medium text-foreground">
-              {isUploading ? "Uploading..." : isDragOver ? "Drop images here" : "Upload project images"}
-            </h4>
-            <p className="text-sm text-muted-foreground mt-1">
-              {isUploading ? "Please wait while images are uploaded to Cloudinary" : "Drag & drop or click to select • JPG, PNG up to 10MB each"}
-            </p>
+            <h4 className="font-medium text-foreground">{isDragOver ? "Drop images here" : "Upload project images"}</h4>
+            <p className="text-sm text-muted-foreground mt-1">Drag & drop or click to select • JPG, PNG up to 10MB each</p>
           </div>
-          {images.length < maxImages && !isUploading && (
+          {images.length + Object.keys(pendingUploads).length < maxImages && (
             <Button variant="outline" size="sm" className="rounded-lg">
               <Upload className="w-4 h-4 mr-2" />
               Choose Files
             </Button>
           )}
-          {isUploading && (
-            <Button variant="outline" size="sm" className="rounded-lg" disabled>
-              <div className="w-4 h-4 animate-spin rounded-full border-2 border-transparent border-t-current mr-2" />
-              Uploading...
-            </Button>
-          )}
         </div>
       </div>
 
-      {/* Upload Progress */}
-      {isUploading && uploadProgress && (
-        <div className="bg-muted/50 rounded-lg p-4">
-          <div className="flex justify-between text-sm mb-2">
-            <span>Uploading to Cloudinary...</span>
-            <span>{uploadProgress.percentage}%</span>
-          </div>
-          <div className="w-full bg-background rounded-full h-2">
-            <div
-              className="bg-primary h-2 rounded-full transition-all duration-300"
-              style={{ width: `${uploadProgress.percentage}%` }}
-            />
+      {/* Pending Uploads Grid */}
+      {Object.keys(pendingUploads).length > 0 && (
+        <div className="space-y-2">
+          <h4 className="font-medium text-sm">Uploading</h4>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {Object.entries(pendingUploads).map(([id, item]) => {
+              const prog = perFileProgress[id]?.percentage ?? (item.status === 'success' ? 100 : 0)
+              const isError = item.status === 'error'
+              return (
+                <div key={id} className={cn(
+                  "relative group aspect-square rounded-xl overflow-hidden border shadow-sm bg-background",
+                  isError ? "border-destructive/50" : "border-border"
+                )}>
+                  <img
+                    src={item.previewUrl}
+                    alt={item.file.name}
+                    className={cn(
+                      "w-full h-full object-cover transition duration-300",
+                      item.status === 'uploading' ? "blur-sm opacity-90" : ""
+                    )}
+                  />
+                  <div className="absolute inset-0 flex items-end">
+                    <div className="w-full h-[3px] bg-muted/40">
+                      <div
+                        className={cn("h-full bg-green-500 transition-[width] duration-200")}
+                        style={{ width: `${prog}%` }}
+                      />
+                    </div>
+                  </div>
+                  <div className="absolute inset-0 p-2 flex items-start justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {item.status === 'uploading' && (
+                      <Button size="icon" variant="secondary" className="rounded-full" onClick={() => cancelUpload(id)}>
+                        <X className="w-4 h-4" />
+                      </Button>
+                    )}
+                    {isError && (
+                      <Button size="sm" variant="destructive" className="rounded-lg" onClick={() => retryUpload(id)}>
+                        Retry
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
       )}
@@ -722,20 +788,17 @@ const ModernImageUpload = React.memo<ModernImageUploadProps>(({
                 <div
                   key={image.public_id}
                   className={cn(
-                    "relative group aspect-square rounded-lg overflow-hidden border cursor-pointer",
-                    orderNumber
-                      ? "border-primary border-2"
-                      : "border-border hover:border-primary/50"
+                    "relative group aspect-square rounded-xl overflow-hidden border shadow-sm hover:shadow-md transition",
+                    orderNumber ? "border-primary border-2" : "border-border hover:border-primary/50"
                   )}
                   onClick={() => handleImageClick(image.public_id)}
                   onMouseEnter={() => setHoveredImage(image.public_id)}
                   onMouseLeave={() => setHoveredImage(null)}
                 >
-                  {/* Image */}
                   <img
                     src={image.url}
                     alt={`Upload ${index + 1}`}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover transform transition duration-300 group-hover:scale-[1.02]"
                   />
 
                   {/* Order Number */}
@@ -752,17 +815,25 @@ const ModernImageUpload = React.memo<ModernImageUploadProps>(({
                     </div>
                   )}
 
-                  {/* Remove Button */}
-                  <button
-                    onClick={(e) => handleRemoveImage(image.public_id, e)}
-                    className={cn(
-                      "absolute w-6 h-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center",
-                      isCover ? "top-10 right-2" : "top-2 right-2",
-                      isHovered ? "opacity-100" : "opacity-0"
-                    )}
+                  {/* Hover Actions */}
+                  <div className={cn(
+                    "absolute inset-0 p-2 flex items-start justify-end gap-2",
+                    isHovered ? "opacity-100" : "opacity-0",
+                    "transition-opacity"
+                  )}
                   >
-                    <X className="w-4 h-4" />
-                  </button>
+                    <Button size="icon" variant="secondary" className="rounded-full" onClick={(e) => { e.stopPropagation(); window.open(image.url, '_blank') }}>
+                      <Eye className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      onClick={(e) => handleRemoveImage(image.public_id, e)}
+                      size="icon"
+                      variant="destructive"
+                      className="rounded-full"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
 
                   {/* Click Hint */}
                   {!orderNumber && isHovered && (

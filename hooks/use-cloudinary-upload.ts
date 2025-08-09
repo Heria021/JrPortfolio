@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useCallback, useRef, useState } from "react"
 import { toast } from "sonner"
 
 export interface CloudinaryImage {
@@ -19,6 +19,9 @@ export interface UploadProgress {
 export function useCloudinaryUpload() {
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null)
+  // Per-file progress keyed by a caller-provided uploadId
+  const [perFileProgress, setPerFileProgress] = useState<Record<string, UploadProgress & { status: 'uploading' | 'success' | 'error'; errorMessage?: string }>>({})
+  const activeRequestsRef = useRef<Record<string, XMLHttpRequest>>({})
 
   const uploadImage = async (file: File): Promise<CloudinaryImage> => {
     // Validate file type and size first
@@ -53,36 +56,18 @@ export function useCloudinaryUpload() {
       formData.append('upload_preset', uploadPreset)
       formData.append('folder', 'portfolio')
 
-      console.log('Uploading to Cloudinary:', {
-        cloudName,
-        uploadPreset,
-        fileName: file.name,
-        fileSize: file.size
-      })
-
       const response = await fetch(
         `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
         {
           method: 'POST',
           body: formData,
-          // Add headers to help with CORS and SSL issues
-          headers: {
-            'Accept': 'application/json',
-          },
+          headers: { 'Accept': 'application/json' },
         }
       )
 
-      console.log('Cloudinary response status:', response.status, response.statusText)
-
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        console.error('Cloudinary upload error:', {
-          status: response.status,
-          statusText: response.statusText,
-          errorData
-        })
-
-        if (response.status === 400 && errorData.error?.message?.includes('Invalid upload preset')) {
+        if (response.status === 400 && (errorData as any).error?.message?.includes('Invalid upload preset')) {
           throw new Error('Upload preset "portfolio_uploads" not found. Please create it in your Cloudinary dashboard.')
         }
         if (response.status === 401) {
@@ -92,12 +77,6 @@ export function useCloudinaryUpload() {
       }
 
       const data = await response.json()
-      console.log('Cloudinary upload successful:', {
-        public_id: data.public_id,
-        secure_url: data.secure_url
-      })
-
-      // Return Cloudinary response in our expected format
       const cloudinaryImage: CloudinaryImage = {
         url: data.secure_url,
         public_id: data.public_id,
@@ -112,27 +91,114 @@ export function useCloudinaryUpload() {
     } catch (error) {
       setIsUploading(false)
       setUploadProgress(null)
-
-      console.error('Upload error details:', error)
-
-      // Handle specific error types
       if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
         throw new Error('Network error: Unable to connect to Cloudinary. Please check your internet connection and try again.')
       }
-
       if (error instanceof Error) {
         throw error
       }
-
       throw new Error('An unexpected error occurred during upload. Please try again.')
     }
   }
 
+  // Parallel upload with individual progress tracking using XHR
+  const uploadImageWithId = useCallback(async (file: File, uploadId: string): Promise<CloudinaryImage> => {
+    // Validate file
+    if (!file.type.startsWith('image/')) throw new Error('Please select a valid image file')
+    if (file.size > 10 * 1024 * 1024) throw new Error('File size must be less than 10MB')
+
+    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+    const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET
+    if (!cloudName || !uploadPreset) {
+      throw new Error('Cloudinary configuration missing. Please set NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME and NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET')
+    }
+
+    setPerFileProgress(prev => ({
+      ...prev,
+      [uploadId]: { loaded: 0, total: file.size, percentage: 0, status: 'uploading' },
+    }))
+
+    return new Promise<CloudinaryImage>((resolve, reject) => {
+      const xhr = new XMLHttpRequest()
+      activeRequestsRef.current[uploadId] = xhr
+
+      xhr.upload.onprogress = (e) => {
+        if (!e.lengthComputable) return
+        const percentage = Math.round((e.loaded / e.total) * 100)
+        setPerFileProgress(prev => ({
+          ...prev,
+          [uploadId]: { loaded: e.loaded, total: e.total, percentage, status: 'uploading' },
+        }))
+      }
+
+      xhr.onreadystatechange = () => {
+        if (xhr.readyState !== 4) return
+        delete activeRequestsRef.current[uploadId]
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const data = JSON.parse(xhr.responseText)
+            const image: CloudinaryImage = {
+              url: data.secure_url,
+              public_id: data.public_id,
+              width: data.width,
+              height: data.height,
+            }
+            setPerFileProgress(prev => ({
+              ...prev,
+              [uploadId]: { ...(prev[uploadId] || { loaded: 0, total: 1, percentage: 100 }), status: 'success' },
+            }))
+            resolve(image)
+          } catch (err) {
+            setPerFileProgress(prev => ({
+              ...prev,
+              [uploadId]: { ...(prev[uploadId] || { loaded: 0, total: 1, percentage: 0 }), status: 'error', errorMessage: 'Invalid response from server' },
+            }))
+            reject(new Error('Invalid response from server'))
+          }
+        } else {
+          const message = xhr.status === 0 ? 'Network error' : `Upload failed (${xhr.status})`
+          setPerFileProgress(prev => ({
+            ...prev,
+            [uploadId]: { ...(prev[uploadId] || { loaded: 0, total: 1, percentage: 0 }), status: 'error', errorMessage: message },
+          }))
+          reject(new Error(message))
+        }
+      }
+
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('upload_preset', uploadPreset)
+      formData.append('folder', 'portfolio')
+
+      xhr.open('POST', `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`)
+      xhr.setRequestHeader('Accept', 'application/json')
+      xhr.send(formData)
+    })
+  }, [])
+
+  const cancelUpload = useCallback((uploadId: string) => {
+    const req = activeRequestsRef.current[uploadId]
+    if (req) {
+      req.abort()
+      delete activeRequestsRef.current[uploadId]
+      setPerFileProgress(prev => ({
+        ...prev,
+        [uploadId]: { ...(prev[uploadId] || { loaded: 0, total: 1, percentage: 0 }), status: 'error', errorMessage: 'Cancelled' },
+      }))
+    }
+  }, [])
+
+  const clearProgress = useCallback((uploadId: string) => {
+    setPerFileProgress(prev => {
+      const { [uploadId]: _, ...rest } = prev
+      return rest
+    })
+  }, [])
+
   const uploadMultipleImages = async (files: File[]): Promise<CloudinaryImage[]> => {
-    const uploadPromises = files.map(uploadImage)
-    
+    // Still expose a convenience function, run fully in parallel
     try {
-      const results = await Promise.all(uploadPromises)
+      const results = await Promise.all(files.map((file, index) => uploadImage(file)))
       toast.success(`Successfully uploaded ${results.length} image(s)`)
       return results
     } catch (error) {
@@ -143,8 +209,12 @@ export function useCloudinaryUpload() {
 
   return {
     uploadImage,
+    uploadImageWithId,
     uploadMultipleImages,
+    cancelUpload,
+    clearProgress,
     isUploading,
     uploadProgress,
+    perFileProgress,
   }
 }

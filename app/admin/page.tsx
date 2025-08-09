@@ -20,8 +20,6 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
-import { useQuery } from "convex/react"
-import { api } from "@/convex/_generated/api"
 
 interface PortfolioProject {
   _id: string
