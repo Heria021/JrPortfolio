@@ -227,9 +227,9 @@ export default function AdminProjectEditPage({ className = "" }: AdminProjectEdi
   }
 
   return (
-    <div className={cn("min-h-screen bg-background", className)}>
+    <div className={cn("h-[100svh] min-h-[100svh] bg-background flex flex-col", className)}>
       {/* Header */}
-      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <header className="flex-shrink-0 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -252,7 +252,7 @@ export default function AdminProjectEditPage({ className = "" }: AdminProjectEdi
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-8 flex-1 overflow-y-auto">
         <ProjectEditForm
           onSubmit={onSubmit}
           onImagesChange={handleImagesChange}

@@ -100,10 +100,10 @@ export default function AdminLogin({ className = "" }: AdminLoginProps) {
   const isFormValid = formData.email.trim() !== "" && formData.password.trim() !== ""
 
   return (
-    <div className={cn("min-h-screen bg-background flex items-center justify-center p-4", className)}>
+    <div className={cn("h-[100svh] min-h-[100svh] bg-background flex items-center justify-center p-4", className)}>
       <div className="w-full max-w-md">
         {/* Main Container - Following AppointmentsList container pattern */}
-        <div className={cn("border rounded-xl flex flex-col overflow-hidden")}>
+        <div className={cn("border rounded-xl flex flex-col overflow-hidden max-h-[calc(100svh-2rem)]")}> 
           {/* Header - Exact AppointmentsList header pattern */}
           <div className="flex-shrink-0 p-4 border-b border-border/50">
             <div className="flex items-center gap-3">
