@@ -29,7 +29,7 @@ export function ProjectGrid({
               alt={`Work ${index + 1}`}
               width={800}
               height={800}
-              className="object-cover w-full h-96 mb-4"
+              className="object-contain w-full mb-4 bg-white"
             />
             {withDetails && (
               <div>
