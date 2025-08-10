@@ -34,7 +34,7 @@ export function ProjectGrid({
             {withDetails && (
               <div>
                 <h2 className="text-lg font-semibold">{project.title}</h2>
-                <p className="text-sm leading-relaxed text-muted-foreground">
+                <p className="text-sm leading-relaxed text-muted-foreground line-clamp-3">
                   {project.description}
                 </p>
               </div>
