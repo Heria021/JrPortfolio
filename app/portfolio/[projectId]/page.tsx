@@ -41,7 +41,7 @@ export default function Portfolio() {
       <section className="w-full">
         <AboutSection
           title="Results"
-          paragraphs={[
+          paragraphs={project && project.description ? [project.description] : [
             "I design with the future in mind. I bring a mindset of sustainability to the table, while always looking out for functional and aesthetically pleasing solutions."
           ]}
         />
