@@ -1,7 +1,7 @@
 "use client"
 
 import React from "react"
-import { useEffect, useState, useMemo } from "react"
+import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useSession, signOut } from "next-auth/react"
 import Link from "next/link"
@@ -46,35 +46,7 @@ interface AdminDashboardProps {
 export default function AdminDashboard({ className = "" }: AdminDashboardProps) {
   const { data: session, status } = useSession()
   const router = useRouter()
-  const [projects, setProjects] = useState<PortfolioProject[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const convexProjects = useQuery(api.portfolio.list, {})
-
-  useEffect(() => {
-    if (status === "loading") return
-
-    if (!session) {
-      router.push("/admin/login")
-      return
-    }
-
-    fetchProjects()
-  }, [session, status, router])
-
-  const fetchProjects = async () => {
-    try {
-      setIsLoading(true)
-      setError(null)
-      const result = convexProjects
-      setProjects((result as unknown as PortfolioProject[]) || [])
-    } catch (error) {
-      console.error("Error fetching projects:", error)
-      setError("Failed to load projects")
-    } finally {
-      setIsLoading(false)
-    }
-  }
 
   const handleSignOut = async () => {
     try {
@@ -98,6 +70,33 @@ export default function AdminDashboard({ className = "" }: AdminDashboardProps) 
 
   if (!session) {
     return null
+  }
+
+  // If convexProjects is undefined, show loading
+  if (typeof convexProjects === "undefined") {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-muted border-t-primary mx-auto" />
+          <p className="text-sm text-muted-foreground">Loading projects...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // If convexProjects is null, treat as error
+  if (convexProjects === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
+            <FolderOpen className="h-6 w-6 text-destructive" />
+          </div>
+          <h3 className="font-medium">Failed to load projects</h3>
+          <p className="text-sm text-muted-foreground">Failed to load projects</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -141,10 +140,7 @@ export default function AdminDashboard({ className = "" }: AdminDashboardProps) 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8 flex-1 overflow-y-auto">
         <ProjectsList
-          projects={projects}
-          isLoading={isLoading}
-          error={error}
-          onRetry={fetchProjects}
+          projects={convexProjects as PortfolioProject[]}
         />
       </main>
     </div>
@@ -153,78 +149,14 @@ export default function AdminDashboard({ className = "" }: AdminDashboardProps) 
 
 interface ProjectsListProps {
   projects: PortfolioProject[]
-  isLoading: boolean
-  error: string | null
-  onRetry: () => void
   className?: string
 }
 
-const ProjectsList = React.memo<ProjectsListProps>(({
-  projects,
-  isLoading,
-  error,
-  onRetry,
-  className = "",
-}) => {
-  // Loading State
-  if (isLoading) {
-    return (
-      <div className={cn("h-full border rounded-xl flex flex-col", className)}>
-        <div className="p-6">
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="border rounded-xl overflow-hidden">
-                {/* Card Header Skeleton */}
-                <div className="p-4 border-b border-border/50">
-                  <div className="h-5 w-3/4 bg-muted rounded animate-pulse mb-2" />
-                  <div className="h-3 w-1/2 bg-muted rounded animate-pulse" />
-                </div>
-
-                {/* Card Content Skeleton */}
-                <div className="p-4 space-y-4">
-                  {/* Image Skeleton */}
-                  <div className="aspect-video w-full bg-muted rounded-lg animate-pulse" />
-
-                  {/* Description Skeleton */}
-                  <div className="space-y-2">
-                    <div className="h-3 w-full bg-muted rounded animate-pulse" />
-                    <div className="h-3 w-2/3 bg-muted rounded animate-pulse" />
-                  </div>
-
-                  {/* Metadata Skeleton */}
-                  <div className="flex justify-between pt-2 border-t border-border/50">
-                    <div className="h-3 w-16 bg-muted rounded animate-pulse" />
-                    <div className="h-3 w-20 bg-muted rounded animate-pulse" />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  // Error State
-  if (error) {
-    return (
-      <div className={cn("h-full border rounded-xl flex items-center justify-center p-6", className)}>
-        <div className="text-center space-y-4">
-          <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
-            <FolderOpen className="h-6 w-6 text-destructive" />
-          </div>
-          <h3 className="font-medium">Failed to load projects</h3>
-          <p className="text-sm text-muted-foreground">{error}</p>
-          <Button variant="outline" size="sm" onClick={onRetry} className="rounded-lg">
-            Try Again
-          </Button>
-        </div>
-      </div>
-    )
-  }
+const ProjectsList = React.memo<ProjectsListProps>(({ projects, className = "" }) => {
+  // Loading State handled in parent
 
   // Empty State
-  if (projects.length === 0) {
+  if (!projects || projects.length === 0) {
     return (
       <div className={cn("h-full border rounded-xl flex items-center justify-center p-6", className)}>
         <div className="text-center space-y-4">
